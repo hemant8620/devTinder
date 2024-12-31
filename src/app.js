@@ -12,7 +12,6 @@ app.post("/signup", async (req, res) => {
     await user.save();
     res.send("user added");
   } catch (error) {
-    console.error("Error saving user:", error);
     res.status(500).send("Error adding user:" + error.message);
   }
 });
@@ -51,15 +50,22 @@ app.delete("/user", async (req, res) => {
   }
 });
 
-app.patch("/user", async (req, res) => {
-  const userId = req.body.userId;
+app.patch("/user/:userId", async (req, res) => {
+  const userId = req.params?.userId;
   const data = req.body;
   try {
-    await User.findByIdAndUpdate({ _id: userId }, data, {
+    const ALLOWED_UPDATES = ["photoUrl", "about", "gender", "age", "skills"];
+    const isUpdateAllowed = Object.keys(data).every((k) =>
+      ALLOWED_UPDATES.includes(k)
+    );
+    if (!isUpdateAllowed) {
+      throw new Error("Update not allowed");
+    }
+    const user = await User.findByIdAndUpdate({ _id: userId }, data, {
       returnDocument: "after",
       runValidators: true,
     });
-    res.send("User updated successfully");
+    res.send(user);
   } catch (err) {
     res.status(400).send("Something went wrong:" + err.message);
   }
